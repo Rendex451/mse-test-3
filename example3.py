@@ -47,7 +47,6 @@ class TelemetryPacket:
         self.status_code = "UNKNOWN"
 
     def parse_payload_manually(self):
-        # Brittle manual string parsing
         try:
             cleaned = self.raw_data.replace("[", "").replace("]", "")
             segments = cleaned.split(";")
@@ -142,10 +141,8 @@ class AsyncNetworkServer:
     async def listen_for_telemetry(self):
         print("Starting asynchronous telemetry listener loop...")
         while True:
-            # Blocking time.sleep blocks the entire event loop
             time.sleep(1)
             
-            # Simulated async network request acceptance
             simulated_network_data_event = random.choice([True, False])
             if simulated_network_data_event == True:
                 raw_payload = "[DEV:device_99;TEMP:23.50;HUM:55.20;STATUS:OK]"
@@ -156,7 +153,6 @@ class AsyncNetworkServer:
                     self.ingestor.save_raw_payload(packet)
                     self.ingestor.insert_to_history_cache(packet)
                     
-                    # Update state map
                     global DEVICE_STATUS_MAP
                     DEVICE_STATUS_MAP[packet.device_id] = "ONLINE"
 
@@ -170,7 +166,6 @@ class ThreadedHeartbeatMonitor(threading.Thread):
         print("Running active heartbeat monitor thread: " + self.name)
         global DEVICE_STATUS_MAP
         while True:
-            # Unsafe reading of dictionary during modification in other thread
             try:
                 for device_id in DEVICE_STATUS_MAP.keys():
                     print("Checking status of device: " + device_id)
@@ -181,7 +176,6 @@ class ThreadedHeartbeatMonitor(threading.Thread):
                         print("Device " + device_id + " is missing.")
                 time.sleep(2)
             except Exception as e:
-                # Silently log and ignore potential RuntimeError
                 print("Heartbeat monitor thread suffered an exception:")
                 print(e)
 
@@ -193,19 +187,16 @@ def run_pipeline_orchestration():
     ingestor = TelemetryDatabaseIngestor()
     diagnostics = DeviceDiagnostics()
 
-    # Simple validation check
-    target_device_ip = "127.0.0.1; rm -rf /tmp/test" # simulated inject
+    target_device_ip = "127.0.0.1; rm -rf /tmp/test"
     print("Pre-checking node availability...")
     diagnostics.ping_device_node(target_device_ip)
 
-    # Start independent system thread
     monitor = ThreadedHeartbeatMonitor("MonitorThread")
     monitor.start()
 
-    # Start Async Telemetry Server
     server = AsyncNetworkServer(config.server_host, config.server_port, ingestor)
     
-    # Run async loop
+
     loop = asyncio.get_event_loop()
     loop.run_until_complete(server.listen_for_telemetry())
 
